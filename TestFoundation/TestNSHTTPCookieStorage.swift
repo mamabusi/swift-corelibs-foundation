@@ -170,7 +170,7 @@ class TestNSHTTPCookieStorage: XCTestCase {
             .value: "Test @#$%^$&*99",
             .path: "/",
             .domain: "example.com",
-            ])!
+        ])!
 
         let simpleCookie1 = HTTPCookie(properties: [
             .name: "TestCookie1",
@@ -178,7 +178,7 @@ class TestNSHTTPCookieStorage: XCTestCase {
             .path: "/",
             .domain: "swift.org",
             .expires: Date(timeIntervalSince1970: Date().timeIntervalSince1970 + 1000)
-            ])!
+        ])!
 
         storage.setCookies([simpleCookie, simpleCookie1], for: url, mainDocumentURL: nil)
         XCTAssertEqual(storage.cookies!.count, 1)
@@ -196,13 +196,13 @@ class TestNSHTTPCookieStorage: XCTestCase {
         let url = URL(string: "https://swift.org/downloads")
         let mainUrl = URL(string: "http://ci.swift.org")
         let simpleCookie = HTTPCookie(properties: [
-            .name: "TestCookie1",
+            .name: "TestCookie2",
             .value: "Test@#$%^$&*99khnia",
             .path: "/",
             .domain: "swift.org",
         ])!
         storage.setCookies([simpleCookie], for: url, mainDocumentURL: mainUrl)
-        XCTAssertEqual(storage.cookies(for: url!)!.count, 1)
+        XCTAssertEqual(storage.cookies(for: url!)!.count, 2)
 
         let url1 = URL(string: "https://dt.swift.org/downloads")
         let simpleCookie1 = HTTPCookie(properties: [

@@ -39,15 +39,16 @@ open class HTTPCookieStorage: NSObject {
     private static var sharedStorage: HTTPCookieStorage?
     private static var sharedCookieStorages: [String: HTTPCookieStorage] = [:] //for group storage containers
 
-    private let cookieFilePath: String
+    private var cookieFilePath: String!
     private let workQueue: DispatchQueue = DispatchQueue(label: "HTTPCookieStorage.workqueue")
     var allCookies: [String: HTTPCookie]
 
     private init(cookieStorageName: String) {
-        cookieFilePath = _CFXDGCreateConfigHomePath()._swiftObject + "/.cookies-" + cookieStorageName
         allCookies = [:]
         cookieAcceptPolicy = .always
         super.init()
+        //TODO: cookieFilePath = filePath(path: _CFXDGCreateConfigHomePath()._swiftObject, fileName: "/.cookies." + cookieStorageName)
+        cookieFilePath = filePath(path: NSHomeDirectory() + "/.config", fileName: "/.cookies." + cookieStorageName)
         loadPersistedCookies()
     }
 
@@ -59,6 +60,25 @@ open class HTTPCookieStorage: NSObject {
                 allCookies[key] = cookie
             }
         }
+    }
+
+    private func directory(with path: String) -> Bool {
+        guard !FileManager.default.fileExists(atPath: path) else { return true }
+
+        do {
+            try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: false, attributes: nil)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func filePath(path: String, fileName: String) -> String {
+        if directory(with: path) {
+            return path + fileName
+        }
+        //if we were unable to create the desired directory, create the cookie file in the `pwd`
+        return fileName
     }
 
     open var cookies: [HTTPCookie]? {
