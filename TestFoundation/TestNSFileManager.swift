@@ -31,6 +31,7 @@ class TestNSFileManager : XCTestCase {
             ("test_subpathsOfDirectoryAtPath", test_subpathsOfDirectoryAtPath),
             ("test_copyItemAtPathToPath", test_copyItemAtPathToPath),
             ("test_homedirectoryForUser", test_homedirectoryForUser),
+            ("test_xdg", test_xdg),
         ]
     }
     
@@ -499,4 +500,17 @@ class TestNSFileManager : XCTestCase {
         XCTAssertNil(filemanger.homeDirectory(forUser: ""))
         XCTAssertNotNil(filemanger.homeDirectoryForCurrentUser)
     }
+
+    func test_xdg() {
+        let value = getenv("XDG_DATA_HOME")
+        // print(value)
+        let fm = FileManager.default
+        print(fm._xdgDataHomeDirectoryPath)
+        print(fm._xdgConfigHomeDirectoryPath)
+        print(fm._xdgDataDirectoriesPaths)
+        print(fm._xdgConfigDirectoriesPaths)
+        print(fm._xdgCacheDirectoryPath)
+        //  print(fm._xdgRuntimeDirectoryPath)
+    }
+
 }

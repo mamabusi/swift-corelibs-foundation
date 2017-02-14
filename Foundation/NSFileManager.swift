@@ -703,6 +703,33 @@ open class FileManager : NSObject {
         }
         return fileType == .typeSymbolicLink
     }
+
+    // XDG Directories
+    // This API is temporary, just for testing. It would be better to figure out a way to expose this stuff to the test cases without making it public.
+    
+    public var _xdgDataHomeDirectoryPath : String {
+        return _CFXDGCreateDataHomePath()._swiftObject
+    }
+    
+    public var _xdgConfigHomeDirectoryPath : String {
+        return _CFXDGCreateConfigHomePath()._swiftObject
+    }
+    
+    public var _xdgDataDirectoriesPaths : [String] {
+        return _CFXDGCreateDataDirectoriesPaths()._swiftObject.map { ($0) as! String}
+    }
+    
+    public var _xdgConfigDirectoriesPaths : [String] {
+        return _CFXDGCreateConfigDirectoriesPaths()._swiftObject.map { ($0) as! String}
+    }
+    
+    public var _xdgCacheDirectoryPath : String {
+        return _CFXDGCreateCacheDirectoryPath()._swiftObject
+    }
+    
+    public var _xdgRuntimeDirectoryPath : String {
+        return _CFXDGCreateRuntimeDirectoryPath()._swiftObject
+    }
 }
 
 extension FileManager {
