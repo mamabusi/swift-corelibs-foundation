@@ -716,20 +716,20 @@ open class FileManager : NSObject {
     }
     
     public var _xdgDataDirectoriesPaths : [String] {
-        return _CFXDGCreateDataDirectoriesPaths()._swiftObject.map { ($0) as! String}
+        return _CFXDGCreateDataDirectoriesPaths()._nsObject.map { ($0) as! String}
     }
     
     public var _xdgConfigDirectoriesPaths : [String] {
-        return _CFXDGCreateConfigDirectoriesPaths()._swiftObject.map { ($0) as! String}
+        return _CFXDGCreateConfigDirectoriesPaths()._nsObject.map { ($0) as! String}
     }
     
     public var _xdgCacheDirectoryPath : String {
         return _CFXDGCreateCacheDirectoryPath()._swiftObject
     }
     
-    public var _xdgRuntimeDirectoryPath : String {
+  /*  public var _xdgRuntimeDirectoryPath : String {
         return _CFXDGCreateRuntimeDirectoryPath()._swiftObject
-    }
+    } */
 }
 
 extension FileManager {

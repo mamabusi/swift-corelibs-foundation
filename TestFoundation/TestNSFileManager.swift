@@ -10,6 +10,7 @@
 #if DEPLOYMENT_RUNTIME_OBJC || os(Linux)
     import Foundation
     import XCTest
+    import CoreFoundation
 #else
     import SwiftFoundation
     import SwiftXCTest
@@ -502,15 +503,17 @@ class TestNSFileManager : XCTestCase {
     }
 
     func test_xdg() {
-        let value = getenv("XDG_DATA_HOME")
-        // print(value)
+        let value = _CFXDGCreateConfigHomePath() 
+        print(value)
+        //let theSwiftArray = value as? [String]
+        //print(theSwiftArray.map { ($0) as! String})
         let fm = FileManager.default
         print(fm._xdgDataHomeDirectoryPath)
         print(fm._xdgConfigHomeDirectoryPath)
         print(fm._xdgDataDirectoriesPaths)
         print(fm._xdgConfigDirectoriesPaths)
         print(fm._xdgCacheDirectoryPath)
-        //  print(fm._xdgRuntimeDirectoryPath)
+        //print(fm._xdgRuntimeDirectoryPath)
     }
 
 }
