@@ -453,7 +453,7 @@ swift_sources = CompileSwiftSources([
 ])
 
 swift_sources.add_dependency(headers)
-foundation.add_phase(swift_sources)
+#foundation.add_phase(swift_sources)
 
 foundation_tests_resources = CopyResources('TestFoundation', [
     'TestFoundation/Resources/Info.plist',
@@ -489,6 +489,9 @@ Configuration.current.extra_ld_flags += ' -L'+Configuration.current.variables["L
 foundation_tests.add_dependency(foundation_tests_resources)
 foundation.add_phase(foundation_tests_resources)
 foundation.add_phase(foundation_tests)
+
+xdgTestHelper = SwiftExecutable('xdgTestHelper', ['TestFoundation/XDGTestHelper.swift'])
+foundation.add_phase(xdgTestHelper)
 
 plutil = SwiftExecutable('plutil', ['Tools/plutil/main.swift'])
 foundation.add_phase(plutil)

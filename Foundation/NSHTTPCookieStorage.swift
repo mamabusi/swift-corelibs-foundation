@@ -6,7 +6,6 @@
 // See http://swift.org/LICENSE.txt for license information
 // See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
-
 import Dispatch
 import CoreFoundation
 
@@ -38,28 +37,29 @@ extension HTTPCookie {
 open class HTTPCookieStorage: NSObject {
 
     private static var sharedStorage: HTTPCookieStorage?
+    private static var sharedCookieStorages: [String: HTTPCookieStorage] = [:] //for group storage containers
 
-    private let cookieFilePath: String = _CFXDGCreateDataHomePath()._swiftObject + "/.cookies"
+    private let cookieFilePath: String
     private let workQueue: DispatchQueue = DispatchQueue(label: "HTTPCookieStorage.workqueue")
     var allCookies: [String: HTTPCookie]
 
-    public override init() {
+    private init(cookieStorageName: String) {
+        cookieFilePath = _CFXDGCreateConfigHomePath()._swiftObject + "/.cookies-" + cookieStorageName
         allCookies = [:]
         cookieAcceptPolicy = .always
         super.init()
         loadPersistedCookies()
     }
-   
+
     private func loadPersistedCookies() {
-        print("Cookie File Path: \(cookieFilePath)")
-        guard let cookies = NSMutableDictionary(contentsOfFile: cookieFilePath) else { return } 
+        guard let cookies = NSMutableDictionary(contentsOfFile: cookieFilePath) else { return }
         var cookies0 = _SwiftValue.fetch(cookies) as? [String: [String: Any]] ?? [:]
         for key in cookies0.keys {
             if let cookie = createCookie(cookies0[key]!) {
                 allCookies[key] = cookie
             }
         }
-    } 
+    }
 
     open var cookies: [HTTPCookie]? {
         var theCookies: [HTTPCookie]?
@@ -79,7 +79,7 @@ open class HTTPCookieStorage: NSObject {
     open class var shared: HTTPCookieStorage {
         get {
             if sharedStorage == nil {
-                sharedStorage = HTTPCookieStorage()
+                sharedStorage = HTTPCookieStorage(cookieStorageName: "shared")
             }
             return sharedStorage!
         }
@@ -96,7 +96,15 @@ open class HTTPCookieStorage: NSObject {
         shared among all applications and extensions with access to the same application group. Subsequent calls to this
         method with the same identifier will return the same cookie storage instance.
      */
-    class func sharedCookieStorage(forGroupContainerIdentifier identifier: String) -> HTTPCookieStorage { NSUnimplemented() }
+    open class func sharedCookieStorage(forGroupContainerIdentifier identifier: String) -> HTTPCookieStorage {
+        guard let cookieStorage = sharedCookieStorages[identifier] else {
+            let newCookieStorage = HTTPCookieStorage(cookieStorageName: identifier)
+            sharedCookieStorages[identifier] = newCookieStorage
+            return newCookieStorage
+        }
+        return cookieStorage
+    }
+
     
     /*!
         @method setCookie:
@@ -106,9 +114,9 @@ open class HTTPCookieStorage: NSObject {
     */
     open func setCookie(_ cookie: HTTPCookie) {
         workQueue.sync {
-            if cookieAcceptPolicy == .never { return }
+            guard cookieAcceptPolicy != .never else { return }
 
-            //add or replace
+            //add or override
             let key = cookie.domain + cookie.path + cookie.name
             if let _ = allCookies.index(forKey: key) {
                 allCookies.updateValue(cookie, forKey: key)
@@ -117,21 +125,21 @@ open class HTTPCookieStorage: NSObject {
             }
 
             //remove stale cookies, these may include the one we just added
-            let expired = allCookies.filter { (_, value) in value.expiresDate != nil && value.expiresDate!.timeIntervalSinceNow < 0}
+            let expired = allCookies.filter { (_, value) in value.expiresDate != nil && value.expiresDate!.timeIntervalSinceNow < 0 }
             for (key,_) in expired {
-                self.allCookies.removeValue(forKey: key) 
+                self.allCookies.removeValue(forKey: key)
             }
-  
+
             updatePersistentStore()
         }
     }
     
     private func createCookie(_ properties: [String: Any]) -> HTTPCookie? {
         var cookieProperties: [HTTPCookiePropertyKey: Any] = [:]
-        for key in properties.keys {
+        for (key, value) in properties {
             if key == "Expires" {
-                let value = properties[key] as! NSNumber
-                cookieProperties[HTTPCookiePropertyKey(rawValue: key)] = Date(timeIntervalSince1970: value.doubleValue)
+                guard let timestamp  = value as? NSNumber else { continue }
+                cookieProperties[HTTPCookiePropertyKey(rawValue: key)] = Date(timeIntervalSince1970: timestamp.doubleValue)
             } else {
                 cookieProperties[HTTPCookiePropertyKey(rawValue: key)] = properties[key]
             }
@@ -142,12 +150,14 @@ open class HTTPCookieStorage: NSObject {
     private func updatePersistentStore() {
         //persist cookies
         var persistDictionary: [String : [String : Any]] = [:]
-        let persistable = allCookies.filter { (_, value) in value.expiresDate != nil &&
-                                                value.isSessionOnly == false &&
-                                                value.expiresDate!.timeIntervalSinceNow > 0 }
+        let persistable = allCookies.filter { (_, value) in
+            value.expiresDate != nil &&
+            value.isSessionOnly == false &&
+            value.expiresDate!.timeIntervalSinceNow > 0
+        }
 
         for (key,cookie) in persistable {
-            persistDictionary[key] = cookie.dictionary()
+            persistDictionary[key] = cookie.persistableDictionary()
         }
 
         let nsdict = _SwiftValue.store(persistDictionary) as! NSDictionary
@@ -158,9 +168,9 @@ open class HTTPCookieStorage: NSObject {
         @method deleteCookie:
         @abstract Delete the specified cookie
     */
-    open func deleteCookie(_ cookie: HTTPCookie) { 
+    open func deleteCookie(_ cookie: HTTPCookie) {
+        let key = cookie.domain + cookie.path + cookie.name
         workQueue.sync {
-            let key = cookie.domain + cookie.path + cookie.name 
             self.allCookies.removeValue(forKey: key)
             updatePersistentStore()
         }
@@ -170,16 +180,16 @@ open class HTTPCookieStorage: NSObject {
      @method removeCookiesSince:
      @abstract Delete all cookies from the cookie storage since the provided date.
      */
-    open func removeCookies(since date: Date) { 
+    open func removeCookies(since date: Date) {
         let cookiesSinceDate = allCookies.values.filter {
             $0.properties![.created] as! Double >  date.timeIntervalSinceReferenceDate
         }
         for cookie in cookiesSinceDate {
-            deleteCookie(cookie) 
+            deleteCookie(cookie)
         }
         updatePersistentStore()
     }
-    
+
     /*!
         @method cookiesForURL:
         @abstract Returns an array of cookies to send to the given URL.
@@ -190,14 +200,11 @@ open class HTTPCookieStorage: NSObject {
         <tt>+[NSCookie requestHeaderFieldsWithCookies:]</tt> to turn this array
         into a set of header fields to add to a request.
     */
-    open func cookies(for url: URL) -> [HTTPCookie]? { 
+    open func cookies(for url: URL) -> [HTTPCookie]? {
         var cookies: [HTTPCookie]?
         guard let host = url.host else { return nil }
-        let path = url.path == "" ? "/" : url.path
         workQueue.sync {
-            cookies = Array(allCookies.values.filter {
-                $0.domain + $0.path == host + path
-            })
+            cookies = Array(allCookies.values.filter{ $0.domain == host })
         }
         return cookies
     }
@@ -220,19 +227,21 @@ open class HTTPCookieStorage: NSObject {
         in accordance with policy settings.
     */
     open func setCookies(_ cookies: [HTTPCookie], for url: URL?, mainDocumentURL: URL?) {
+        //if the cookieAcceptPolicy is `never` we don't have anything to do
         guard cookieAcceptPolicy != .never else { return }
-        guard let theUrl = url else { return }
-            
-        var validCookies = [HTTPCookie]()
+
+        //if the urls don't have a host, we cannot do anything
+        guard let urlHost = url?.host else { return }
+
         if mainDocumentURL != nil && cookieAcceptPolicy == .onlyFromMainDocumentDomain {
-            //TODO: needs a careful study of the behaviour on Darwin
-            NSUnimplemented()
-        } else {
-            validCookies = cookies.filter {
-                theUrl.host != nil && theUrl.host!.hasSuffix($0.domain)
-            }
+            guard let mainDocumentHost = mainDocumentURL?.host else { return }
+
+            //the url.host must be a suffix of manDocumentURL.host, this is based on Darwin's behaviour
+            guard mainDocumentHost.hasSuffix(urlHost) else { return }
         }
 
+        //save only those cookies whose domain matches with the url.host
+        let validCookies = cookies.filter { urlHost == $0.domain }
         for cookie in validCookies {
             setCookie(cookie)
         }
@@ -252,7 +261,6 @@ open class HTTPCookieStorage: NSObject {
       @discussion proper sorting of cookies may require extensive string conversion, which can be avoided by allowing the system to perform the sorting.  This API is to be preferred over the more generic -[NSHTTPCookieStorage cookies] API, if sorting is going to be performed.
     */
     open func sortedCookies(using sortOrder: [NSSortDescriptor]) -> [HTTPCookie] { NSUnimplemented() }
-
 }
 
 public extension Notification.Name {
@@ -264,14 +272,14 @@ public extension Notification.Name {
 }
 
 extension HTTPCookie {
-    internal func dictionary() -> [String: Any] {
+    internal func persistableDictionary() -> [String: Any] {
         var properties: [String: Any] = [:]
         properties[HTTPCookiePropertyKey.name.rawValue] = name
         properties[HTTPCookiePropertyKey.path.rawValue] = path
         properties[HTTPCookiePropertyKey.value.rawValue] = _value
         properties[HTTPCookiePropertyKey.secure.rawValue] = _secure
         properties[HTTPCookiePropertyKey.version.rawValue] = _version
-        properties[HTTPCookiePropertyKey.expires.rawValue] = _expiresDate!.timeIntervalSince1970
+        properties[HTTPCookiePropertyKey.expires.rawValue] = _expiresDate?.timeIntervalSince1970 ?? Date().timeIntervalSince1970 //OK?
         properties[HTTPCookiePropertyKey.domain.rawValue] = _domain
         if let commentURL = _commentURL {
             properties[HTTPCookiePropertyKey.commentURL.rawValue] = commentURL.absoluteString
