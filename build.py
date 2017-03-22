@@ -453,7 +453,7 @@ swift_sources = CompileSwiftSources([
 ])
 
 swift_sources.add_dependency(headers)
-#foundation.add_phase(swift_sources)
+foundation.add_phase(swift_sources)
 
 foundation_tests_resources = CopyResources('TestFoundation', [
     'TestFoundation/Resources/Info.plist',
@@ -526,7 +526,7 @@ rule RunTestFoundation
     command = echo "**** RUNNING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} ${BUILD_DIR}/TestFoundation/TestFoundation\\n**** DEBUGGING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} ${BUILD_DIR}/../lldb-${OS}-${ARCH}/bin/lldb ${BUILD_DIR}/TestFoundation/TestFoundation\\n"
     description = Building Tests
 
-build ${BUILD_DIR}/.test: RunTestFoundation | TestFoundation
+build ${BUILD_DIR}/.test: RunTestFoundation | TestFoundation | xdgTestHelper
 
 build test: phony | ${BUILD_DIR}/.test
 

@@ -216,58 +216,14 @@ class TestNSHTTPCookieStorage: XCTestCase {
     }
     
     func test_xdgImpl() {
-/*       //setenv("XDG_DATA_HOME", "/root/mamatha", 1)
-       let contentToAppend = "export XDG_DATA_HOME=\"/usr/bin\"\n"
-       let filePath = "/etc/" + "environment"
-       //Check if file exists
-       if let fileHandle = FileHandle(forWritingAtPath: filePath) {
-           //Append to file
-           fileHandle.seekToEndOfFile()
-           fileHandle.write(contentToAppend.data(using: String.Encoding.utf8)!)
-       }
-       else {
-           //Create new file
-       do {
-        try contentToAppend.write(toFile: filePath, atomically: true, encoding: String.Encoding.utf8)
-       } catch {
-           print("Error creating \(filePath)")
-          }
-       }
-*/
-/*       for (key, value) in ProcessInfo.processInfo.environment {
-           print("\(key): \(value)")
-       }
-       let task = Process()
-       task.launchPath = "/root/mamatha/executable/TestXDG"
-       let pipe = Pipe()
-       task.standardOutput = pipe
-       task.launch()
-
-// Get the data
-//let data = pipe.fileHandleForReading.readDataToEndOfFile()
-//let output = NSString(data: data, encoding: String.Encoding.utf8.rawValue)
-//
-//print(output!) */
-
-// Create a Task instance (was NSTask on swift pre 3.0)
     let task = Process()
 
-    // Set the task parameters
-   // task.launchPath = "/bin/ls"
     task.launchPath = "/root/mamatha/executable/TestXDG"
-    /*for (key, value) in ProcessInfo.processInfo.environment {
-           print("\(key): \(value)")
-       }*/
     var dict = ProcessInfo.processInfo.environment
     dict["XDG_CONFIG_HOME"] =  "/root/mamatha"
     dict["XDG_DATA_HOME"] =  "/root/data"
    
-   /* var dict: [String:String] = [
-    "XDG_CONFIG_HOME" : "/root/mamatha",
-    "XDG_DATA_HOME" : "/root/data",
-    ]*/
     task.environment = dict
-
     // Create a Pipe and make the task
     // put all the output there
     let pipe = Pipe()
