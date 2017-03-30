@@ -216,9 +216,17 @@ class TestNSHTTPCookieStorage: XCTestCase {
     }
     
     func test_xdgImpl() {
+        let expected = FileManager.default.currentDirectoryPath
+        print("File: expected : \(expected)") 
+        let bundle = Bundle.main
+        print("Path: \(bundle.bundlePath)")
+        print("executablePath: \(bundle.executablePath)")
+        let url = bundle.url(forAuxiliaryExecutable: "xdgTestHelper")
+        print("url: \(url)")
     let task = Process()
 
-    task.launchPath = "/root/mamatha/executable/TestXDG"
+//    task.launchPath = "/root/mamatha/executable/TestXDG"
+    task.launchPath = "/root/mamatha/swiftBuild/build/buildbot_linux/foundation-linux-x86_64/xdgTestHelper/xdgTestHelper"
     var dict = ProcessInfo.processInfo.environment
     dict["XDG_CONFIG_HOME"] =  "/root/mamatha"
     dict["XDG_DATA_HOME"] =  "/root/data"
@@ -231,6 +239,9 @@ class TestNSHTTPCookieStorage: XCTestCase {
 
     // Launch the task
     task.launch()
+    task.waitUntilExit()
+    let status = task.terminationStatus
+    print("Status: \(status)")
 
     // Get the data
     let data = pipe.fileHandleForReading.readDataToEndOfFile()

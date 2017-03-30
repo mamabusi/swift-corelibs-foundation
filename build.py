@@ -486,12 +486,15 @@ foundation_tests = SwiftExecutable('TestFoundation', [
 
 Configuration.current.extra_ld_flags += ' -L'+Configuration.current.variables["LIBDISPATCH_BUILD_DIR"]+'/src/.libs'
 
+#xdgHelperTest = CompileSwiftSources(['TestFoundation/XDGTestHelper.swift',])
+#foundation_tests.add_dependency(xdgHelperTest)
+
 foundation_tests.add_dependency(foundation_tests_resources)
+xdgTestHelper = SwiftExecutable('xdgTestHelper', ['TestFoundation/XDGTestHelper.swift'])
+foundation_tests.add_dependency(xdgTestHelper)
+foundation.add_phase(xdgTestHelper)
 foundation.add_phase(foundation_tests_resources)
 foundation.add_phase(foundation_tests)
-
-xdgTestHelper = SwiftExecutable('xdgTestHelper', ['TestFoundation/XDGTestHelper.swift'])
-foundation.add_phase(xdgTestHelper)
 
 plutil = SwiftExecutable('plutil', ['Tools/plutil/main.swift'])
 foundation.add_phase(plutil)
@@ -526,7 +529,7 @@ rule RunTestFoundation
     command = echo "**** RUNNING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} ${BUILD_DIR}/TestFoundation/TestFoundation\\n**** DEBUGGING TESTS ****\\nexecute:\\nLD_LIBRARY_PATH=${BUILD_DIR}/Foundation/:${LIBS_DIRS} ${BUILD_DIR}/../lldb-${OS}-${ARCH}/bin/lldb ${BUILD_DIR}/TestFoundation/TestFoundation\\n"
     description = Building Tests
 
-build ${BUILD_DIR}/.test: RunTestFoundation | TestFoundation | xdgTestHelper
+build ${BUILD_DIR}/.test: RunTestFoundation | TestFoundation
 
 build test: phony | ${BUILD_DIR}/.test
 
