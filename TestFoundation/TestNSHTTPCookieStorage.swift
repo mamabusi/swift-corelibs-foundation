@@ -30,7 +30,7 @@ class TestNSHTTPCookieStorage: XCTestCase {
             ("test_setCookiesForURL", test_setCookiesForURL),
             ("test_getCookiesForURL", test_getCookiesForURL),
             ("test_setCookiesForURLWithMainDocumentURL", test_setCookiesForURLWithMainDocumentURL),
-            ("test_xdgImpl", test_xdgImpl),
+            ("test_cookieInXDGSpecPath", test_cookieInXDGSpecPath),
         ]
     }
 
@@ -215,38 +215,42 @@ class TestNSHTTPCookieStorage: XCTestCase {
         XCTAssertEqual(storage.cookies(for: url1!)!.count, 0)
     }
     
-    func test_xdgImpl() {
-        let expected = FileManager.default.currentDirectoryPath
-        print("File: expected : \(expected)") 
+    func test_cookieInXDGSpecPath() {
+        //Test without setting the environment variable
+        let testCookie = HTTPCookie(properties: [ 
+           .name: "TestCookie0",
+           .value: "Test @#$%^$&*99mam",
+           .path: "/",
+           .domain: "sample.com",
+        ])!
+        let storage = HTTPCookieStorage.shared
+        storage.setCookie(testCookie)
+        XCTAssertEqual(storage.cookies!.count, 3)
+        var destPath: String
+        if let xdg_config_home = getenv("XDG_CONFIG_HOME") {
+            destPath = String(utf8String: xdg_config_home)! + "/.cookies.shared"
+        } else {
+            destPath = NSHomeDirectory() + "/.config/.cookies.shared"
+        }
+        let fm = FileManager.default
+        var isDir = false
+        let exists = fm.fileExists(atPath: destPath, isDirectory: &isDir)
+        XCTAssertTrue(exists)
+        //Test by setting the environmental variable 
         let bundle = Bundle.main
-        print("Path: \(bundle.bundlePath)")
-        print("executablePath: \(bundle.executablePath)")
-        let url = bundle.url(forAuxiliaryExecutable: "xdgTestHelper")
-        print("url: \(url)")
-    let task = Process()
-
-//    task.launchPath = "/root/mamatha/executable/TestXDG"
-    task.launchPath = "/root/mamatha/swiftBuild/build/buildbot_linux/foundation-linux-x86_64/xdgTestHelper/xdgTestHelper"
-    var dict = ProcessInfo.processInfo.environment
-    dict["XDG_CONFIG_HOME"] =  "/root/mamatha"
-    dict["XDG_DATA_HOME"] =  "/root/data"
-   
-    task.environment = dict
-    // Create a Pipe and make the task
-    // put all the output there
-    let pipe = Pipe()
-    task.standardOutput = pipe
-
-    // Launch the task
-    task.launch()
-    task.waitUntilExit()
-    let status = task.terminationStatus
-    print("Status: \(status)")
-
-    // Get the data
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    let output = NSString(data: data, encoding: String.Encoding.utf8.rawValue)
-
-    print(output!)
+        let bundlePath = bundle.bundlePath
+        var pathIndex = bundlePath.range(of: "/", options: .backwards)?.lowerBound
+        let task = Process()
+        task.launchPath = bundlePath.substring(to: pathIndex!) + "/xdgTestHelper/xdgTestHelper" 
+        var environment = ProcessInfo.processInfo.environment
+        environment["XDG_CONFIG_HOME"] =  NSHomeDirectory() + "/TestXDG"
+        task.environment = environment 
+        // Launch the task
+        task.launch()
+        task.waitUntilExit()
+        let status = task.terminationStatus
+        XCTAssertEqual(status, 0)
+        let terminationReason = task.terminationReason
+        XCTAssertEqual(terminationReason, Process.TerminationReason.exit)
     }
 }

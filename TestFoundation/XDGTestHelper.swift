@@ -1,28 +1,19 @@
 import Foundation
+import XCTest
 
-func test_func() {
 let storage = HTTPCookieStorage.shared
-let simpleCookie0 = HTTPCookie(properties: [   //no expiry date
-            .name: "TestCookie1",
+let simpleCookie = HTTPCookie(properties: [ 
+            .name: "TestCookie",
             .value: "Test @#$%^$&*99",
             .path: "/",
-            .domain: "swift.org",
+            .domain: "example.com",
             ])!
 let rawValue = getenv("XDG_CONFIG_HOME")        
 let xdg_config_home = String(utf8String: rawValue!)
-print("Accessing environment variable")
-print(xdg_config_home)
-for (key, value) in ProcessInfo.processInfo.environment {
-           print("\(key): \(value)")
-       }
-storage.setCookie(simpleCookie0)
-
+storage.setCookie(simpleCookie)
+XCTAssertEqual(storage.cookies!.count, 1)
 let fm = FileManager.default
-let destPath = "/root/mamatha/.cookies-TestCookie1"
+let destPath = xdg_config_home! + "/.cookies.shared"
 var isDir = false
 let exists = fm.fileExists(atPath: destPath, isDirectory: &isDir) 
-
-print("Created Cookie false. File exists: \(exists)")
-}
-
-test_func()
+XCTAssertTrue(exists)

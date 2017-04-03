@@ -47,8 +47,7 @@ open class HTTPCookieStorage: NSObject {
         allCookies = [:]
         cookieAcceptPolicy = .always
         super.init()
-        //TODO: cookieFilePath = filePath(path: _CFXDGCreateConfigHomePath()._swiftObject, fileName: "/.cookies." + cookieStorageName)
-        cookieFilePath = filePath(path: NSHomeDirectory() + "/.config", fileName: "/.cookies." + cookieStorageName)
+        cookieFilePath = filePath(path: _CFXDGCreateConfigHomePath()._swiftObject, fileName: "/.cookies." + cookieStorageName)
         loadPersistedCookies()
     }
 
@@ -179,7 +178,6 @@ open class HTTPCookieStorage: NSObject {
         for (key,cookie) in persistable {
             persistDictionary[key] = cookie.persistableDictionary()
         }
-
         let nsdict = _SwiftValue.store(persistDictionary) as! NSDictionary
         _ = nsdict.write(toFile: cookieFilePath, atomically: true)
     }
