@@ -88,7 +88,8 @@ open class URLSessionTask : NSObject, NSCopying {
         originalRequest = nil
         body = .none
         workQueue = DispatchQueue(label: "URLSessionTask.notused.0")
-        taskAttributesIsolation = DispatchQueue(label: "URLSessionTask.notused.1", attributes: DispatchQueue.Attributes.concurrent)
+        //Changed to a serial queue
+        taskAttributesIsolation = DispatchQueue(label: "URLSessionTask.notused.1")
         let fileName = NSTemporaryDirectory() + NSUUID().uuidString + ".tmp"
         _ = FileManager.default.createFile(atPath: fileName, contents: nil)
         self.tempFileURL = URL(fileURLWithPath: fileName)
@@ -105,7 +106,7 @@ open class URLSessionTask : NSObject, NSCopying {
     internal init(session: URLSession, request: URLRequest, taskIdentifier: Int, body: _Body) {
         self.session = session
         self.workQueue = session.workQueue
-        self.taskAttributesIsolation = session.taskAttributesIsolation
+        self.taskAttributesIsolation = DispatchQueue(label: "URLSessionTask.notused.1")
         self.taskIdentifier = taskIdentifier
         self.originalRequest = request
         self.body = body
@@ -139,14 +140,14 @@ open class URLSessionTask : NSObject, NSCopying {
             return taskAttributesIsolation.sync { self._currentRequest }
         }
         //TODO: dispatch_barrier_async
-        set { taskAttributesIsolation.async(flags: .barrier) { self._currentRequest = newValue } }
+        set { taskAttributesIsolation.sync { self._currentRequest = newValue } }
     }
     fileprivate var _currentRequest: URLRequest? = nil
     /*@NSCopying*/ open fileprivate(set) var response: URLResponse? {
         get {
             return taskAttributesIsolation.sync { self._response }
         }
-        set { taskAttributesIsolation.async(flags: .barrier) { self._response = newValue } }
+        set { taskAttributesIsolation.sync { self._response = newValue } }
     }
     fileprivate var _response: URLResponse? = nil
     
@@ -160,7 +161,7 @@ open class URLSessionTask : NSObject, NSCopying {
         get {
             return taskAttributesIsolation.sync { self._countOfBytesReceived }
         }
-        set { taskAttributesIsolation.async(flags: .barrier) { self._countOfBytesReceived = newValue } }
+        set { taskAttributesIsolation.sync { self._countOfBytesReceived = newValue } }
     }
     fileprivate var _countOfBytesReceived: Int64 = 0
     
@@ -169,7 +170,7 @@ open class URLSessionTask : NSObject, NSCopying {
         get {
             return taskAttributesIsolation.sync { self._countOfBytesSent }
         }
-        set { taskAttributesIsolation.async(flags: .barrier) { self._countOfBytesSent = newValue } }
+        set { taskAttributesIsolation.sync { self._countOfBytesSent = newValue } }
     }
 
     fileprivate var _countOfBytesSent: Int64 = 0
@@ -209,7 +210,7 @@ open class URLSessionTask : NSObject, NSCopying {
         get {
             return taskAttributesIsolation.sync { self._state }
         }
-        set { taskAttributesIsolation.async(flags: .barrier) { self._state = newValue } }
+        set { taskAttributesIsolation.sync { self._state = newValue } }
     }
     fileprivate var _state: URLSessionTask.State = .suspended
     
@@ -292,7 +293,7 @@ open class URLSessionTask : NSObject, NSCopying {
             return taskAttributesIsolation.sync { self._priority }
         }
         set {
-            taskAttributesIsolation.async(flags: .barrier) { self._priority = newValue }
+            taskAttributesIsolation.sync { self._priority = newValue }
         }
     }
     fileprivate var _priority: Float = URLSessionTask.defaultPriority
